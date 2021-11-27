@@ -10,19 +10,35 @@ tabela_stats <- phs %>% select(stat_name,team_name, hero_name, stat_amount) %>%
         ungroup() %>% droplevels(.) %>% 
         pivot_wider(names_from = c(hero_name), values_from = soma)
 
+# 
 
 tabela_stats <- phs %>% select(stat_name,team_name, hero_name, stat_amount) %>% 
                 filter(stat_name == "All Damage Done" & hero_name != "All Heroes")%>% 
                group_by(hero_name,team_name) %>% summarise(soma = sum(stat_amount)) %>% 
-               arrange(desc(soma)) %>% 
+               arrange(team_name,desc(soma)) %>% 
                ungroup() %>% droplevels(.) %>% 
                group_by(team_name) %>% 
                mutate(nrow = 1:n()) %>% 
                filter(nrow <= 5) %>% 
                tibble()
-  
-               
-             
 
 
-tabela_stats %>% group_by(hero_name) %>% summarise(n())
+# 
+
+t1 <- tabela_stats %>% group_by(hero_name) %>% summarise(qtd = n(), soma= sum(soma))
+t2 <- phs %>% filter(stat_name == "All Damage Done" & hero_name != "All Heroes") %>% 
+              group_by(hero_name) %>% summarise(qtd = n(),soma = sum(stat_amount)) %>% 
+              ungroup() %>% droplevels(.) %>% 
+              tibble()
+
+write.csv(tabela_stats, "C:\\Projeto\\a.csv")
+
+tfinal <- t1 %>% inner_join(t2, by= "hero_name")
+tfinal <- tfinal %>% rename(soma = 3, qtd = 2, qtdt = 4, somt = 5) %>% arrange(desc(qtd)) %>% head(5)
+tfinal$somt <- tfinal$somt*10^3
+
+library(plotly)
+
+ggplotly(
+tfinal %>% ggplot(mapping = aes(x = qtdt, y=somt, size = qtd)) + geom_point(aplha = 0.5, colour = "blue"))
+)
