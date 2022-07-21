@@ -1,0 +1,87 @@
+
+```{r}
+library(tidyverse)
+library(fpp3)
+```
+
+```{r}
+PBS %>%
+  filter(ATC2 == "A10") %>%
+  select(Month, Concession, Type, Cost) %>%
+  summarise(TotalC = sum(Cost)) %>%
+  mutate(Cost = TotalC / 1e6) -> a10
+```
+
+Suppose you have annual observations for the last few years:
+
+```{r}
+prison <- readr::read_csv("https://OTexts.com/fpp3/extrafiles/prison_population.csv")
+```
+We can read it into R, and create a tsibble object, by simply identifying which column contains the time index, and which columns are keys. The remaining columns are values — there can be many value columns, although in this case there is only one (Count). The original csv file stored the dates as individual days, although the data is actually quarterly, so we need to convert the Date variable to quarters.
+
+```{r}
+prison <- prison %>%
+  mutate(Quarter = yearquarter(Date)) %>%
+  select(-Date) %>%
+  as_tsibble(key = c(State, Gender, Legal, Indigenous),
+             index = Quarter)
+```
+
+For time series data, the obvious graph to start with is a time plot. That is, the observations are plotted against the time of observation, with consecutive observations joined by straight lines. Figure 2.1 shows the weekly economy passenger load on Ansett airlines between Australia’s two largest cities.
+
+```{r}
+melsyd_economy <- ansett %>%
+  filter(Airports == "MEL-SYD", Class == "Economy") %>%
+  mutate(Passengers = Passengers/1000)
+
+autoplot(melsyd_economy, Passengers) +
+  labs(title = "Ansett airlines economy class",
+       subtitle = "Melbourne-Sydney",
+       y = "Passengers ('000)")
+```
+```{r}
+autoplot(a10, Cost) +
+  labs(y = "$ (millions)",
+       title = "Australian antidiabetic drug sales")
+```
+A seasonal plot is similar to a time plot except that the data are plotted against the individual “seasons” in which the data were observed. An example is given in Figure 2.4 showing the antidiabetic drug sales.
+
+```{r}
+a10 %>%
+  gg_season(Cost, labels = "both") +
+  labs(y = "$ (millions)",
+       title = "Seasonal plot: Antidiabetic drug sales")
+```
+These are exactly the same data as were shown earlier, but now the data from each season are overlapped. A seasonal plot allows the underlying seasonal pattern to be seen more clearly, and is especially useful in identifying years in which the pattern changes.
+
+In this case, it is clear that there is a large jump in sales in January each year. Actually, these are probably sales in late December as customers stockpile before the end of the calendar year, but the sales are not registered with the government until a week or two later. The graph also shows that there was an unusually small number of sales in March 2008 (most other years show an increase between February and March). The small number of sales in June 2008 is probably due to incomplete counting of sales at the time the data were collected.
+
+Multiple seasonal periods
+
+Where the data has more than one seasonal pattern, the period argument can be used to select which seasonal plot is required. The vic_elec data contains half-hourly electricity demand for the state of Victoria, Australia. We can plot the daily pattern, weekly pattern or yearly pattern by specifying the period argument as shown in Figures 2.5–2.7.
+
+In the first plot, the three days with 25 hours are when daylight saving ended in each year and so these days contained an extra hour. There were also three days with only 23 hours each (when daylight saving started) but these are hidden beneath all the other lines on the plot.
+
+Dia
+
+```{r}
+vic_elec %>% gg_season(Demand, period = "day") +
+  theme(legend.position = "none") +
+  labs(y="MWh", title="Electricity demand: Victoria")
+```
+
+Semana
+
+```{r}
+vic_elec %>% gg_season(Demand, period = "week") +
+  theme(legend.position = "none") +
+  labs(y="MWh", title="Electricity demand: Victoria")
+```
+
+Ano
+
+```{r}
+vic_elec %>% gg_season(Demand, period = "year") +
+  labs(y="MWh", title="Electricity demand: Victoria")
+```
+
